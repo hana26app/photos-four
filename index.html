@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>키즈 인생네컷 스튜디오</title>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Gaegu', cursive, sans-serif;
+      background-color: #f1f8f3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: #333;
+      overflow-x: hidden;
+    }
+
+    /* 16:9 메인 컨테이너 */
+    .app-container {
+      width: 100vw;
+      max-width: 1333px;
+      aspect-ratio: 16 / 9;
+      background-color: #f6fbf7;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 36px;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .title {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: #27ae60;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .subtitle {
+      font-size: 1.3rem;
+      color: #556b2f;
+      margin-top: 2px;
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      gap: 36px;
+      align-items: stretch;
+      min-height: 0;
+    }
+
+    /* 왼쪽: 카메라 및 컨트롤 패널 */
+    .left-panel {
+      flex: 1.2;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .camera-wrapper {
+      position: relative;
+      flex: 1;
+      background-color: #000;
+      border-radius: 28px;
+      border: 4px solid #fff;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #webcam {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    .countdown-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 8rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      z-index: 10;
+    }
+
+    .flash-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.1s ease-out;
+      z-index: 20;
+    }
+
+    .flash-overlay.active {
+      opacity: 1;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 10px 0;
+    }
+
+    .pattern-picker {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .pattern-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+      background-color: #fff;
+    }
+    .pattern-btn.selected {
+      transform: scale(1.2);
+      border-color: #333;
+    }
+
+    .btn-group {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .btn {
+      font-family: 'Gaegu', cursive;
+      font-size: 1.5rem;
+      font-weight: 700;
+      padding: 12px 32px;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 rgba(0,0,0,0.1);
+      transition: all 0.1s;
+      color: #fff;
+    }
+    
+    .btn:active {
+      transform: translateY(6px);
+      box-shadow: 0 0 0 rgba(0,0,0,0.1);
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: 0 6px 0 rgba(0,0,0,0.1);
+    }
+
+    .btn-capture { background-color: #ff6b6b; box-shadow: 0 6px 0 #d9534f; }
+    .btn-capture:active { box-shadow: 0 0 0 #d9534f; }
+    
+    .btn-download { background-color: #4ecdc4; box-shadow: 0 6px 0 #3b9b95; display: none; }
+    .btn-download:active { box-shadow: 0 0 0 #3b9b95; }
+
+    /* 스티커 팔레트 및 드래그 스티커 스타일 */
+    .sticker-palette {
+      display: none;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+      background: #fff;
+      padding: 12px;
+      border-radius: 16px;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .sticker-btn {
+      font-size: 1.8rem;
+      cursor: pointer;
+      transition: transform 0.1s;
+      user-select: none;
+    }
+    .sticker-btn:active {
+      transform: scale(1.3);
+    }
+    .sticker-help {
+      width: 100%;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    /* 오른쪽: 결과물 패널 */
+    .right-panel {
+      flex: 0.8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #fff;
+      border-radius: 28px;
+      box-shadow: inset 0 4px 15px rgba(0,0,0,0.05);
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .photo-strip-container {
+      width: 100%;
+      max-width: 320px;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .image-wrapper {
+      position: relative;
+      display: none; /* 촬영 완료 전에는 숨김 */
+      width: 100%;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    #sticker-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .draggable-sticker {
+      pointer-events: auto;
+      position: absolute;
+      font-size: 2.5rem;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+      transform: translate(-50%, -50%);
+      z-index: 100;
+    }
+    .draggable-sticker:active {
+      cursor: grabbing;
+    }
+
+    /* 캔버스에서 생성된 이미지를 보여주는 영역 */
+    #final-strip-image {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #999;
+      font-size: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+
+    /* 숨겨진 캔버스 (이미지 생성용) */
+    #render-canvas {
+      display: none;
+    }
+
+    /* 모바일 대응 */
+    @media (max-width: 768px) {
+      .app-container {
+        aspect-ratio: auto;
+        height: auto;
+        min-height: 100vh;
+        border-radius: 0;
+        padding: 16px;
+      }
+      .main-content {
+        flex-direction: column;
+      }
+      .camera-wrapper {
+        min-height: 300px;
+      }
+      .right-panel {
+        min-height: 400px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <header>
+      <h1 class="title">📸 키즈 인생네컷 스튜디오 ✨</h1>
+      <p class="subtitle">예쁜 미소를 준비하고 4장의 사진을 찍어보아요!</p>
+    </header>
+
+    <div class="main-content">
+      <!-- 왼쪽 패널: 웹캠 및 제어 -->
+      <div class="left-panel">
+        <div class="camera-wrapper">
+          <video id="webcam" autoplay playsinline></video>
+          <div class="countdown-overlay" id="countdown">3</div>
+          <div class="flash-overlay" id="flash"></div>
+        </div>
+        
+        <div class="controls">
+          <div class="pattern-picker" id="pattern-picker">
+            <canvas class="pattern-btn selected" data-pattern="wood" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="autumn_leaves" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="ginkgo" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="checker" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="acorn" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="stars" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="hearts" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="clouds" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="leaves" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="fall_sunset" width="40" height="40"></canvas>
+            <!-- 새롭게 추가된 8가지 프레임 패턴 -->
+            <canvas class="pattern-btn" data-pattern="plaid" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="waves" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="floral" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="honeycomb" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="paws" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="confetti" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="bricks" width="40" height="40"></canvas>
+            <canvas class="pattern-btn" data-pattern="bubbles" width="40" height="40"></canvas>
+          </div>
+          
+          <div class="btn-group">
+            <button class="btn btn-capture" id="btn-start">📷 촬영 시작!</button>
+            <button class="btn btn-download" id="btn-download">💾 사진 저장하기</button>
+          </div>
+
+          <div class="sticker-palette" id="sticker-palette">
+            <div class="sticker-help">💡 스티커를 클릭하고 더블클릭하면 지워져요!</div>
+            <!-- 스티커 버튼들이 자바스크립트로 추가됩니다 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 오른쪽 패널: 결과물 표시 -->
+      <div class="right-panel">
+        <div class="photo-strip-container">
+          <div class="empty-state" id="empty-state">
+            <span style="font-size: 3rem; margin-bottom: 10px;">🧸</span>
+            아직 찍은 사진이 없어요.<br>촬영을 시작해보세요!
+          </div>
+          <div class="image-wrapper" id="image-wrapper">
+            <img id="final-strip-image" alt="내 인생네컷" />
+            <div id="sticker-layer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 이미지 합성을 위한 숨겨진 캔버스 -->
+  <canvas id="render-canvas"></canvas>
+
+  <script>
+    const video = document.getElementById('webcam');
+    const countdownEl = document.getElementById('countdown');
+    const flashEl = document.getElementById('flash');
+    const btnStart = document.getElementById('btn-start');
+    const btnDownload = document.getElementById('btn-download');
+    const finalImageEl = document.getElementById('final-strip-image');
+    const emptyStateEl = document.getElementById('empty-state');
+    const patternBtns = document.querySelectorAll('.pattern-btn');
+    const renderCanvas = document.getElementById('render-canvas');
+    const ctx = renderCanvas.getContext('2d');
+    
+    // 추가된 요소 가져오기
+    const stickerPalette = document.getElementById('sticker-palette');
+    const imageWrapper = document.getElementById('image-wrapper');
+    const stickerLayer = document.getElementById('sticker-layer');
+
+    let currentPattern = 'wood'; // 기본 프레임 패턴
+    let photos = []; // 촬영된 사진 데이터(DataURL)를 저장할 배열
+    let isShooting = false; // 촬영 진행 중 여부
+
+    // 가을 곤충, 꽃, 유아용 이모티콘 및 새로 추가된 가을 테마 스티커(총 27개)
+    const EMOJIS = ['🐞', '🐝', '🦋', '🐛', '🐌', '🐜', '🦗', '🌻', '🌼', '🌸', '🌺', '🌷', '🍄', '🍁', '🍂', '🍎', '🍓', '🎈', '🎀', '🌈', '🧸', '⭐️', '🌰', '🐿️', '🌾', '🦊', '🦉'];
+
+    // 스티커 팔레트 초기화
+    EMOJIS.forEach(emoji => {
+      const span = document.createElement('span');
+      span.className = 'sticker-btn';
+      span.innerText = emoji;
+      
+      // 빨간색 풍선을 노란색으로 보이게 필터 적용
+      if (emoji === '🎈') {
+        span.style.filter = 'hue-rotate(70deg)'; 
+      }
+
+      span.addEventListener('click', () => addStickerToImage(emoji));
+      stickerPalette.appendChild(span);
+    });
+
+    // 인생네컷 규격 설정
+    const STRIP_WIDTH = 600;
+    const PHOTO_WIDTH = 540;
+    const PHOTO_HEIGHT = 405; // 4:3 비율
+    const PADDING_TOP = 40;
+    const PADDING_SIDE = 30;
+    const SPACING = 20;
+    const BOTTOM_SPACE = 120; // 하단 로고/텍스트 공간
+    // 전체 캔버스 높이 계산 = 위여백 + (사진높이*4) + (간격*3) + 아래여백
+    const STRIP_HEIGHT = PADDING_TOP + (PHOTO_HEIGHT * 4) + (SPACING * 3) + BOTTOM_SPACE;
+
+    // 웹캠 초기화 함수
+    async function initWebcam() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false 
+        });
+        video.srcObject = stream;
+      } catch (err) {
+        console.error("웹캠 접근 에러:", err);
+        alert("카메라를 사용할 수 없습니다. 권한을 허용해주세요!");
+      }
+    }
+
+    // 프레임 배경 패턴 그리기 함수
+    function drawBackground(canvasCtx, patternType, w, h) {
+      canvasCtx.save();
+      // 패턴들이 캔버스 밖으로 나가지 않도록 클리핑 영역 설정
+      canvasCtx.beginPath();
+      canvasCtx.rect(0, 0, w, h);
+      canvasCtx.clip();
+
+      if (patternType === 'wood') {
+        // 1. 나무결 무늬
+        canvasCtx.fillStyle = '#e0b589';
+        canvasCtx.fillRect(0, 0, w, h);
+        canvasCtx.strokeStyle = '#cda073';
+        canvasCtx.lineWidth = Math.max(w * 0.01, 1);
+        const stepX = w / 15;
+        const stepY = h / 20;
+        for(let i=0; i<=w; i+=stepX) {
+          canvasCtx.beginPath();
+          canvasCtx.moveTo(i, 0);
+          for(let y=0; y<=h; y+=stepY) {
+            canvasCtx.lineTo(i + Math.sin(y/(stepY*2))*stepX*0.4, y);
+          }
+          canvasCtx.stroke();
+        }
+      } else if (patternType === 'autumn_leaves') {
+        // 2. 단풍잎 무늬 (가을)
+        canvasCtx.fillStyle = '#ffe0b2';
+        canvasCtx.fillRect(0, 0, w, h);
+        canvasCtx.fillStyle = '#e64a19';
+        const s = w / 6;
+        for(let x=s/2; x<w+s; x+=s) {
+          for(let y=s/2; y<h+s; y+=s) {
+            canvasCtx.save();
+            canvasCtx.translate(x + (Math.floor(y/s)%2)*s/2, y);
+            canvasCtx.rotate((Math.floor(x/s)*3 + Math.floor(y/s)*7) * Math.PI/4);
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, -s*0.3); canvasCtx.lineTo(s*0.1, -s*0.1);
+            canvasCtx.lineTo(s*0.3, -s*0.15); canvasCtx.lineTo(s*0.15, s*0.05);
+            canvasCtx.lineTo(s*0.25, s*0.25); canvasCtx.lineTo(0, s*0.15);
+            canvasCtx.lineTo(-s*0.25, s*0.25); canvasCtx.lineTo(-s*0.15, s*0.05);
+            canvasCtx.lineTo(-s*0.3, -s*0.15); canvasCtx.lineTo(-s*0.1, -s*0.1);
+            canvasCtx.fill();
+            canvasCtx.strokeStyle = '#bf360c'; canvasCtx.lineWidth = 2;
+            canvasCtx.beginPath(); canvasCtx.moveTo(0,0); canvasCtx.lineTo(0, s*0.3); canvasCtx.stroke();
+            canvasCtx.restore();
+          }
+        }
+      } else if (patternType === 'ginkgo') {
+        // 3. 은행잎 무늬 (가을)
+        canvasCtx.fillStyle = '#fff9c4';
+        canvasCtx.fillRect(0, 0, w, h);
+        canvasCtx.fillStyle = '#fbc02d';
+        const s = w / 7;
+        for(let x=s/2; x<w+s; x+=s) {
+          for(let y=s/2; y<h+s; y+=s) {
+            canvasCtx.save();
+            canvasCtx.translate(x + (Math.floor(y/s)%2)*s/2, y);
+            canvasCtx.rotate((Math.floor(x/s)*5 + Math.floor(y/s)*2) * Math.PI/6);
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, s*0.2);
+            canvasCtx.arc(0, -s*0.1, s*0.25, Math.PI*0.8, Math.PI*0.2, false);
+            canvasCtx.fill();
+            canvasCtx.strokeStyle = '#f57f17'; canvasCtx.lineWidth = 2;
+            canvasCtx.beginPath(); canvasCtx.moveTo(0, s*0.1); canvasCtx.lineTo(0, s*0.4); canvasCtx.stroke();
+            canvasCtx.restore();
+          }
+        }
+      } else if (patternType === 'checker') {
+        // 4. 체크무늬
+        canvasCtx.fillStyle = '#ffb3ba';
+        canvasCtx.fillRect(0, 0, w, h);
+        canvasCtx.fillStyle = '#fff';
+        const size = w / 8;
+        for(let x=0; x<w; x+=size) {
+          for(let y=0; y<h; y+=size) {
+            if((Math.floor(x/size) + Math.floor(y/size)) % 2 === 0) {
+              canvasCtx.fillRect(x, y, size + 1, size + 1);
+            }
+          }
+        }
+      } else if (patternType === 'acorn') {
+        // 5. 도토리 무늬 (가을)
+        canvasCtx.fillStyle = '#efebe9';
+        canvasCtx.fillRect(0, 0, w, h);
+        const s = w / 8;
+        for(let x=s/2; x<w+s; x+=s) {
+          for(let y=s/2; y<h+s; y+=s) {
+            canvasCtx.save();
+            canvasCtx.translate(x + (Math.floor(y/s)%2)*s/2, y);
+            canvasCtx.rotate((Math.floor(x/s)*2 + Math.floor(y/s)*3) * Math.PI/5);
+            canvasCtx.fillStyle = '#8d6e63';
+            canvasCtx.beginPath(); canvasCtx.ellipse(0, s*0.1, s*0.15, s*0.2, 0, 0, Math.PI*2); canvasCtx.fill();
+            canvasCtx.fillStyle = '#5d4037';
+            canvasCtx.beginPath(); canvasCtx.arc(0, 0, s*0.16, Math.PI, 0); canvasCtx.fill();
+            canvasCtx.strokeStyle = '#4e342e'; canvasCtx.lineWidth = 2;
+            canvasCtx.beginPath(); canvasCtx.moveTo(0, -s*0.15); canvasCtx.lineTo(0, -s*0.05); canvasCtx.stroke();
+            canvasCtx.restore();
+          }
+        }
+      } else if (patternType === 'stars') {
+        // 6. 밤하늘 별무늬
+        canvasCtx.fillStyle = '#1a2a6c';
+        canvasCtx.fillRect(0, 0, w, h);
+        canvasCtx.fillStyle = '#fdbb2d';
+        const spacing = w / 8;
+        for(let x=spacing/2; x<w; x+=spacing) {
+          for(let y=spacing/2; y<h; y+=spacing) {
+            canvasCtx.save();
+            canvasCtx.translate(x + (Math.floor(y/spacing)%2)*spacing/2, y); // 지그재그 배치
+            canvasCtx.beginPath();
+            const R = spacing * 0.3;
+            const r = spacing * 0.15;
+            for(let i=0; i<5; i++) {
+              canvasCtx.lineTo(Math.cos((18+i*72)*Math.PI/180)*R, -Math.sin((18+i*72)*Math.PI/180)*R);
+              canvasCtx.lineTo(Math.cos((54+i*72)*Math.PI/180)*r, -Math.sin((54+i*72)*Math.PI/180)*r);
+            }
+            canvasCtx.closePath();
+            canvasCtx.fill();
+            canvasCtx.restore();
+          }
+        }
+      } else if (patternType === 'hearts') {
+        // 7. 하트무늬
+        canvasCtx.fillStyle = '#f0e6ef';
+        canvasCtx.fillRect(0, 0, w, h);
+        canvasCtx.fillStyle = '#ff8fab';
+        const spacing = w / 8;
+        for(let x=spacing/2; x<w; x+=spacing) {
+          for(let y=spacing/2; y<h; y+=spacing) {
+            const size = spacing * 0.3;
+            canvasCtx.save();
+            canvasCtx.translate(x, y);
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, size*0.5);
+            canvasCtx.bezierCurveTo(-size, -size*0.5, -size, -size, 0, -size*0.5);
+            canvasCtx.bezierCurveTo(size, -size, size, -size*0.5, 0, size*0.5);
+            canvasCtx.fill();
+            canvasCtx.restore();
+          }
+        }
+      } else if (patternType === 'clouds') {
+        // 8. 구름무늬
+        canvasCtx.fillStyle = '#bae1ff';
+        canvasCtx.fillRect(0, 0, w, h);
+        canvasCtx.fillStyle = '#fff';
+        const spacing = w / 5;
+        for(let x=0; x<w+spacing; x+=spacing) {
+          for(let y=0; y<h+spacing; y+=spacing) {
+            const cx = x + (Math.floor(y/spacing)%2)*spacing/2;
+            const r = spacing * 0.3;
+            canvasCtx.beginPath();
+            canvasCtx.arc(cx, y, r, 0, Math.PI*2);
+            canvasCtx.arc(cx-r*0.8, y+r*0.4, r*0.7, 0, Math.PI*2);
+            canvasCtx.arc(cx+r*0.8, y+r*0.4, r*0.7, 0, Math.PI*2);
+            canvasCtx.fill();
+          }
+        }
+      } else if (patternType === 'leaves') {
+        // 9. 나뭇잎 무늬
+        canvasCtx.fillStyle = '#e2f0cb';
+        canvasCtx.fillRect(0, 0, w, h);
+        canvasCtx.fillStyle = '#8bc34a';
+        const spacing = w / 8;
+        for(let x=spacing/2; x<w; x+=spacing) {
+          for(let y=spacing/2; y<h; y+=spacing) {
+            canvasCtx.save();
+            canvasCtx.translate(x, y);
+            canvasCtx.rotate(Math.PI/4 + (Math.floor(x/spacing)%2)*Math.PI/2); // 지그재그 회전
+            canvasCtx.beginPath();
+            canvasCtx.ellipse(0, 0, spacing*0.3, spacing*0.15, 0, 0, Math.PI*2);
+            canvasCtx.fill();
+            canvasCtx.restore();
+          }
+        }
+      } else if (patternType === 'fall_sunset') {
+        // 10. 가을 노을 그라데이션
+        let grad = canvasCtx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, '#d84315');
+        grad.addColorStop(0.3, '#ef6c00');
+        grad.addColorStop(0.6, '#ffb300');
+        grad.addColorStop(1, '#ffecb3');
+        canvasCtx.fillStyle = grad;
+        canvasCtx.fillRect(0, 0, w, h);
+      } else if (patternType === 'plaid') {
+        // 11. 가을 피크닉 체크 무늬
+        canvasCtx.fillStyle = '#fbe9e7';
+        canvasCtx.fillRect(0, 0, w, h);
+        const s = w / 5;
+        canvasCtx.fillStyle = 'rgba(216, 67, 21, 0.4)';
+        for(let y=0; y<h; y+=s) { canvasCtx.fillRect(0, y+s*0.2, w, s*0.6); }
+        canvasCtx.fillStyle = 'rgba(111, 78, 55, 0.4)';
+        for(let x=0; x<w; x+=s) { canvasCtx.fillRect(x+s*0.2, 0, s*0.6, h); }
+        canvasCtx.fillStyle = 'rgba(62, 39, 35, 0.3)';
+        for(let x=0; x<w; x+=s) { canvasCtx.fillRect(x+s*0.45, 0, s*0.1, h); }
+        for(let y=0; y<h; y+=s) { canvasCtx.fillRect(0, y+s*0.45, w, s*0.1); }
+      } else if (patternType === 'waves') {
+        // 12. 파도 무늬
+        canvasCtx.fillStyle = '#e0f7fa';
+        canvasCtx.fillRect(0, 0, w, h);
+        canvasCtx.strokeStyle = '#00bcd4';
+        canvasCtx.lineWidth = Math.max(w * 0.015, 2);
+        const spacing = w / 8;
+        for(let y=spacing/2; y<h+spacing; y+=spacing) {
+          canvasCtx.beginPath();
+          for(let x=0; x<=w; x+=10) {
+            canvasCtx.lineTo(x, y + Math.sin(x/(w/10)) * (spacing/3));
+          }
+          canvasCtx.stroke();
+        }
+      } else if (patternType === 'floral') {
+        // 13. 데이지 꽃 무늬
+        canvasCtx.fillStyle = '#c8e6c9';
+        canvasCtx.fillRect(0, 0, w, h);
+        const spacing = w / 6;
+        for(let x=spacing/2; x<w; x+=spacing) {
+          for(let y=spacing/2; y<h; y+=spacing) {
+            canvasCtx.save();
+            canvasCtx.translate(x + (Math.floor(y/spacing)%2)*spacing/2, y);
+            // 꽃잎
+            canvasCtx.fillStyle = '#ffffff';
+            for(let i=0; i<5; i++) {
+              canvasCtx.beginPath();
+              canvasCtx.ellipse(0, spacing*0.2, spacing*0.1, spacing*0.2, i*(Math.PI*2/5), 0, Math.PI*2);
+              canvasCtx.fill();
+            }
+            // 꽃술
+            canvasCtx.fillStyle = '#ffeb3b';
+            canvasCtx.beginPath();
+            canvasCtx.arc(0, 0, spacing*0.12, 0, Math.PI*2);
+            canvasCtx.fill();
+            canvasCtx.restore();
+          }
+        }
+      } else if (patternType === 'honeycomb') {
+        // 14. 벌집 무늬
+        canvasCtx.fillStyle = '#ffe082';
+        canvasCtx.fillRect(0, 0, w, h);
+        canvasCtx.strokeStyle = '#ffa000';
+        canvasCtx.lineWidth = Math.max(w * 0.01, 1);
+        const size = w / 15;
+        const hexHeight = Math.sqrt(3) * size;
+        const hexWidth = 2 * size;
+        for (let y = 0, row = 0; y < h + hexHeight; y += hexHeight * 0.866, row++) {
+          for (let x = 0; x < w + hexWidth; x += hexWidth * 0.75) {
+            const xOffset = (row % 2) * hexWidth * 0.375;
+            canvasCtx.beginPath();
+            for (let i = 0; i < 6; i++) {
+              const angle = (Math.PI / 3) * i;
+              const px = x + xOffset + size * Math.cos(angle);
+              const py = y + size * Math.sin(angle);
+              if (i === 0) canvasCtx.moveTo(px, py);
+              else canvasCtx.lineTo(px, py);
+            }
+            canvasCtx.closePath();
+            canvasCtx.stroke();
+          }
+        }
+      } else if (patternType === 'paws') {
+        // 15. 동물 발자국
+        canvasCtx.fillStyle = '#d7ccc8';
+        canvasCtx.fillRect(0, 0, w, h);
+        canvasCtx.fillStyle = '#5d4037';
+        const spacing = w / 7;
+        for(let x=spacing/2; x<w; x+=spacing) {
+          for(let y=spacing/2; y<h; y+=spacing) {
+            canvasCtx.save();
+            canvasCtx.translate(x + (Math.floor(y/spacing)%2)*spacing/2, y);
+            const rot = ((Math.floor(x/spacing)*3 + Math.floor(y/spacing)*5) % 4) * (Math.PI/6) - Math.PI/12;
+            canvasCtx.rotate(rot);
+            const s = spacing * 0.15;
+            // 발바닥
+            canvasCtx.beginPath();
+            canvasCtx.ellipse(0, s, s*1.2, s, 0, 0, Math.PI*2);
+            canvasCtx.fill();
+            // 발가락
+            const toes = [-1.2, -0.4, 0.4, 1.2];
+            const toeY = [-s, -s*1.5, -s*1.5, -s];
+            for(let i=0; i<4; i++) {
+              canvasCtx.beginPath();
+              canvasCtx.ellipse(toes[i]*s, toeY[i], s*0.4, s*0.5, toes[i]*0.3, 0, Math.PI*2);
+              canvasCtx.fill();
+            }
+            canvasCtx.restore();
+          }
+        }
+      } else if (patternType === 'confetti') {
+        // 16. 파티 폭죽(도형)
+        canvasCtx.fillStyle = '#fce4ec';
+        canvasCtx.fillRect(0, 0, w, h);
+        const colors = ['#f44336', '#2196f3', '#4caf50', '#ffeb3b', '#9c27b0', '#ff9800'];
+        const s = w / 12;
+        for(let x=0; x<w; x+=s) {
+          for(let y=0; y<h; y+=s) {
+            const seed = (Math.floor(x/s)*11 + Math.floor(y/s)*17);
+            const type = seed % 3;
+            const color = colors[seed % colors.length];
+            canvasCtx.fillStyle = color;
+            canvasCtx.save();
+            canvasCtx.translate(x + (seed%5)*s/5, y + (seed%7)*s/7);
+            canvasCtx.rotate((seed%10)*Math.PI/5);
+            if(type === 0) { // 동그라미
+              canvasCtx.beginPath(); canvasCtx.arc(0, 0, s*0.25, 0, Math.PI*2); canvasCtx.fill();
+            } else if (type === 1) { // 네모
+              canvasCtx.fillRect(-s*0.2, -s*0.2, s*0.4, s*0.4);
+            } else { // 세모
+              canvasCtx.beginPath(); canvasCtx.moveTo(0, -s*0.3); canvasCtx.lineTo(s*0.3, s*0.2); canvasCtx.lineTo(-s*0.3, s*0.2); canvasCtx.fill();
+            }
+            canvasCtx.restore();
+          }
+        }
+      } else if (patternType === 'bricks') {
+        // 17. 벽돌 무늬
+        canvasCtx.fillStyle = '#d32f2f';
+        canvasCtx.fillRect(0, 0, w, h);
+        canvasCtx.strokeStyle = '#ffffff';
+        canvasCtx.lineWidth = Math.max(w * 0.01, 1);
+        const bWidth = w / 6;
+        const bHeight = w / 12;
+        for(let y=0, row=0; y<h; y+=bHeight, row++) {
+          canvasCtx.beginPath(); canvasCtx.moveTo(0, y); canvasCtx.lineTo(w, y); canvasCtx.stroke();
+          const offset = (row % 2 === 0) ? 0 : bWidth / 2;
+          for(let x=offset; x<w; x+=bWidth) {
+            canvasCtx.beginPath(); canvasCtx.moveTo(x, y); canvasCtx.lineTo(x, y+bHeight); canvasCtx.stroke();
+          }
+        }
+      } else if (patternType === 'bubbles') {
+        // 18. 비눗방울 무늬
+        canvasCtx.fillStyle = '#b3e5fc';
+        canvasCtx.fillRect(0, 0, w, h);
+        canvasCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        canvasCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        const s = w / 8;
+        for(let x=0; x<w+s; x+=s) {
+          for(let y=0; y<h+s; y+=s) {
+            const seed = (Math.floor(x/s)*13 + Math.floor(y/s)*19);
+            if (seed % 3 !== 0) {
+              canvasCtx.save();
+              canvasCtx.translate(x + (seed%5)*s/10 - s/5, y + (seed%7)*s/10 - s/5);
+              const r = s * 0.2 + (seed%4)*s*0.1;
+              canvasCtx.lineWidth = Math.max(r * 0.05, 1);
+              canvasCtx.beginPath(); canvasCtx.arc(0, 0, r, 0, Math.PI*2); canvasCtx.fill(); canvasCtx.stroke();
+              // 하이라이트 (빛반사)
+              canvasCtx.fillStyle = '#ffffff';
+              canvasCtx.beginPath(); canvasCtx.arc(-r*0.3, -r*0.3, r*0.2, 0, Math.PI*2); canvasCtx.fill();
+              canvasCtx.restore();
+            }
+          }
+        }
+      }
+      canvasCtx.restore();
+    }
+
+    // 패턴 선택 로직
+    patternBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        if(isShooting) return; // 촬영중에는 프레임 변경 불가
+        
+        // 선택 UI 업데이트
+        patternBtns.forEach(b => b.classList.remove('selected'));
+        e.target.classList.add('selected');
+        
+        // 현재 패턴 저장
+        currentPattern = e.target.getAttribute('data-pattern');
+        
+        // 이미 촬영된 사진이 있다면 프레임 다시 그리기
+        if(photos.length === 4) {
+          renderFinalStrip();
+        }
+      });
+    });
+
+    // 촬영 시작 버튼 클릭 이벤트
+    btnStart.addEventListener('click', async () => {
+      if(isShooting) return;
+      isShooting = true;
+      photos = []; // 배열 초기화
+      stickerLayer.innerHTML = ''; // 기존 스티커 초기화
+      
+      btnStart.disabled = true;
+      btnDownload.style.display = 'none';
+      imageWrapper.style.display = 'none';
+      stickerPalette.style.display = 'none';
+      emptyStateEl.style.display = 'flex';
+      emptyStateEl.innerHTML = '<span style="font-size: 3rem; margin-bottom: 10px;">📸</span>찰칵! 촬영 중이에요...';
+
+      // 4장 연속 촬영 시작
+      for(let i = 0; i < 4; i++) {
+        await takePhotoWithCountdown(i + 1);
+        if(i < 3) {
+          // 사진 사이의 짧은 대기 시간
+          await new Promise(res => setTimeout(res, 1000));
+        }
+      }
+
+      // 4장 모두 찍으면 최종 이미지 합성
+      renderFinalStrip();
+      
+      // UI 복구
+      isShooting = false;
+      btnStart.disabled = false;
+      btnStart.innerText = '📷 다시 찍기!';
+      btnDownload.style.display = 'block';
+      emptyStateEl.style.display = 'none';
+      imageWrapper.style.display = 'block';
+      stickerPalette.style.display = 'flex';
+    });
+
+    // 카운트다운 및 1장 촬영 로직
+    async function takePhotoWithCountdown(photoNumber) {
+      return new Promise((resolve) => {
+        let count = 3;
+        countdownEl.innerText = count;
+        countdownEl.style.display = 'flex';
+        
+        const timer = setInterval(() => {
+          count--;
+          
+          if(count > 0) {
+            countdownEl.innerText = count;
+          } else {
+            clearInterval(timer);
+            countdownEl.style.display = 'none';
+            
+            // 플래시 효과
+            flashEl.classList.add('active');
+            setTimeout(() => flashEl.classList.remove('active'), 150);
+            
+            // 임시 캔버스를 만들어 현재 비디오 프레임 캡처
+            const tempCanvas = document.createElement('canvas');
+            // 비디오의 실제 해상도 기준
+            const vw = video.videoWidth;
+            const vh = video.videoHeight;
+            
+            // 4:3 비율로 크롭하기 위한 계산
+            let targetWidth = vw;
+            let targetHeight = vw * (3/4);
+            
+            if (targetHeight > vh) {
+              targetHeight = vh;
+              targetWidth = vh * (4/3);
+            }
+
+            const startX = (vw - targetWidth) / 2;
+            const startY = (vh - targetHeight) / 2;
+
+            tempCanvas.width = targetWidth;
+            tempCanvas.height = targetHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // 거울 모드(좌우 반전)로 캔버스에 그리기
+            tempCtx.translate(targetWidth, 0);
+            tempCtx.scale(-1, 1);
+            tempCtx.drawImage(video, startX, startY, targetWidth, targetHeight, 0, 0, targetWidth, targetHeight);
+            
+            // 캡처한 이미지 저장
+            photos.push(tempCanvas.toDataURL('image/jpeg', 0.9));
+            
+            resolve();
+          }
+          count--;
+        }, 1000); // 1초마다 카운트 감소
+      });
+    }
+
+    // 최종 네컷 사진 합성 및 렌더링
+    function renderFinalStrip() {
+      // 캔버스 크기 설정
+      renderCanvas.width = STRIP_WIDTH;
+      renderCanvas.height = STRIP_HEIGHT;
+
+      // 1. 선택된 패턴으로 배경 채우기
+      drawBackground(ctx, currentPattern, STRIP_WIDTH, STRIP_HEIGHT);
+
+      // 어두운 패턴일 경우 텍스트를 흰색으로, 나머지는 어두운 색으로
+      const textColor = (currentPattern === 'stars') ? '#ffffff' : '#333333';
+
+      // 2. 사진 4장 그리기
+      let loadedImages = 0;
+      
+      // 이미지가 모두 로드된 후 캔버스에 그리기 위한 처리
+      photos.forEach((dataUrl, index) => {
+        const img = new Image();
+        img.onload = () => {
+          // 각 사진의 y축 위치 계산
+          const yPos = PADDING_TOP + (index * (PHOTO_HEIGHT + SPACING));
+          
+          // 사진 영역에 얇은 테두리(옵션) 및 사진 그리기
+          ctx.fillStyle = '#ffffff'; // 사진 뒷배경 (투명도 방지)
+          ctx.fillRect(PADDING_SIDE, yPos, PHOTO_WIDTH, PHOTO_HEIGHT);
+          
+          ctx.drawImage(img, PADDING_SIDE, yPos, PHOTO_WIDTH, PHOTO_HEIGHT);
+          
+          loadedImages++;
+          
+          // 4장이 모두 캔버스에 그려졌을 때 텍스트 추가 및 UI 업데이트
+          if(loadedImages === 4) {
+            finalizeStrip(textColor);
+          }
+        };
+        img.src = dataUrl;
+      });
+    }
+
+    // 사진 텍스트 및 로고 렌더링 후 화면 표시
+    function finalizeStrip(textColor) {
+      // 날짜 생성
+      const today = new Date();
+      const dateString = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
+
+      // 텍스트 설정
+      ctx.textAlign = 'center';
+      
+      // 타이틀
+      ctx.font = 'bold 36px "Gaegu"';
+      ctx.fillStyle = textColor;
+      const titleY = STRIP_HEIGHT - BOTTOM_SPACE + 50;
+      ctx.fillText('키즈 인생네컷', STRIP_WIDTH / 2, titleY);
+
+      // 날짜
+      ctx.font = '24px "Gaegu"';
+      ctx.fillText(dateString, STRIP_WIDTH / 2, titleY + 35);
+
+      // 캔버스 결과물을 이미지 태그에 적용
+      finalImageEl.src = renderCanvas.toDataURL('image/png');
+    }
+
+    // 스티커를 이미지 위에 추가하고 드래그 가능하게 만드는 함수
+    function addStickerToImage(emoji) {
+      if(photos.length < 4) return;
+      
+      const sticker = document.createElement('div');
+      sticker.className = 'draggable-sticker';
+      sticker.innerText = emoji;
+
+      // 이미지 위에 올라간 스티커에도 노란색 필터 유지
+      if (emoji === '🎈') {
+        sticker.style.filter = 'hue-rotate(70deg)';
+      }
+      
+      // 이미지 정중앙에 스티커 최초 배치
+      sticker.style.left = '50%';
+      sticker.style.top = '50%';
+
+      // 폰트 크기를 통한 스티커 크기 제어 (초기 40px 설정)
+      let currentFontSize = 40;
+      sticker.style.fontSize = `${currentFontSize}px`;
+      
+      // 더블클릭/더블터치 시 스티커 삭제
+      sticker.addEventListener('dblclick', () => sticker.remove());
+
+      // 마우스 휠로 크기 조절 기능 추가
+      sticker.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          currentFontSize += 4; // 스크롤 올리면 확대
+        } else {
+          currentFontSize = Math.max(16, currentFontSize - 4); // 스크롤 내리면 축소 (최소 16px)
+        }
+        sticker.style.fontSize = `${currentFontSize}px`;
+      });
+      
+      let isDragging = false;
+      let startX, startY, initialX, initialY;
+      let initialDistance = 0; // 핀치 줌 계산용 초기 거리
+
+      // 드래그 시작
+      const startDrag = (e) => {
+        // 모바일 기기 두 손가락 터치(핀치 줌) 시작 시
+        if (e.touches && e.touches.length === 2) {
+          isDragging = false;
+          initialDistance = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          if (e.cancelable) e.preventDefault();
+          return;
+        }
+
+        isDragging = true;
+        const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+        const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+        startX = clientX;
+        startY = clientY;
+        initialX = sticker.offsetLeft;
+        initialY = sticker.offsetTop;
+        sticker.style.cursor = 'grabbing';
+        if (e.cancelable) e.preventDefault(); // 터치 시 스크롤 방지
+      };
+
+      // 드래그 및 핀치 줌 중
+      const doDrag = (e) => {
+        // 핀치 줌 (두 손가락)
+        if (e.touches && e.touches.length === 2) {
+          const currentDistance = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          if (initialDistance > 0) {
+            const diff = currentDistance - initialDistance;
+            if (Math.abs(diff) > 2) {
+              currentFontSize += diff * 0.4; // 줌 속도 조절
+              currentFontSize = Math.max(16, Math.min(200, currentFontSize)); // 크기 제한 설정
+              sticker.style.fontSize = `${currentFontSize}px`;
+              initialDistance = currentDistance; // 초기 거리 업데이트
+            }
+          }
+          if (e.cancelable) e.preventDefault();
+          return;
+        }
+
+        if (!isDragging) return;
+        const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+        const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        sticker.style.left = (initialX + dx) + 'px';
+        sticker.style.top = (initialY + dy) + 'px';
+      };
+
+      // 드래그 종료
+      const endDrag = () => {
+        if(isDragging) {
+            isDragging = false;
+            sticker.style.cursor = 'grab';
+        }
+        initialDistance = 0;
+      };
+
+      // 마우스 & 터치 이벤트 등록
+      sticker.addEventListener('mousedown', startDrag);
+      sticker.addEventListener('touchstart', startDrag, { passive: false });
+
+      document.addEventListener('mousemove', doDrag);
+      document.addEventListener('touchmove', doDrag, { passive: false });
+
+      document.addEventListener('mouseup', endDrag);
+      document.addEventListener('touchend', endDrag);
+
+      stickerLayer.appendChild(sticker);
+    }
+
+    // 다운로드 버튼 로직
+    btnDownload.addEventListener('click', () => {
+      if(!finalImageEl.src) return;
+      
+      // 현재 추가된 스티커들을 캔버스에 합성 처리
+      const stickers = document.querySelectorAll('.draggable-sticker');
+      const rect = finalImageEl.getBoundingClientRect();
+      
+      // 화면에 보여지는 이미지 크기와 실제 캔버스 크기(해상도)의 비율 계산
+      const scaleX = renderCanvas.width / rect.width;
+      const scaleY = renderCanvas.height / rect.height;
+
+      // 캔버스 상태 저장
+      ctx.save();
+      
+      stickers.forEach(sticker => {
+        const stickerRect = sticker.getBoundingClientRect();
+        
+        // 브라우저 뷰포트 기준 좌표를 이미지(finalImageEl) 내부의 상대 좌표로 변환
+        const relX = (stickerRect.left + stickerRect.width / 2) - rect.left;
+        const relY = (stickerRect.top + stickerRect.height / 2) - rect.top;
+        
+        // 상대 좌표를 고해상도 캔버스 좌표계로 스케일링
+        const canvasX = relX * scaleX;
+        const canvasY = relY * scaleY;
+        
+        // 화면에 보여지는 폰트 크기를 캔버스 해상도에 맞게 변환
+        const computedStyle = window.getComputedStyle(sticker);
+        const fontSize = parseFloat(computedStyle.fontSize) * scaleY;
+        
+        // 캔버스에 이모티콘 텍스트 그리기 (중앙 정렬 기준)
+        ctx.font = `${fontSize}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // 이미지로 저장(다운로드)할 때도 풍선에만 노란색 필터 적용
+        if (sticker.innerText === '🎈') {
+          ctx.filter = 'hue-rotate(70deg)';
+        } else {
+          ctx.filter = 'none';
+        }
+        
+        ctx.fillText(sticker.innerText, canvasX, canvasY);
+        ctx.filter = 'none'; // 다른 요소에 영향을 주지 않도록 필터 초기화
+      });
+
+      // 스티커까지 모두 합성된 캔버스를 이미지 파일로 다운로드
+      const link = document.createElement('a');
+      link.download = `키즈인생네컷_${new Date().getTime()}.png`;
+      link.href = renderCanvas.toDataURL('image/png');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // 다운로드가 끝나면 캔버스 상태 복구 및 원본 이미지 재렌더링
+      // (스티커를 계속 수정해서 여러 번 저장할 수 있도록 하기 위함)
+      ctx.restore();
+      renderFinalStrip();
+    });
+
+    // 앱 시작 시 웹캠 초기화
+    window.addEventListener('load', () => {
+      initWebcam();
+      // 패턴 버튼들에 미리보기 무늬 그리기
+      patternBtns.forEach(btn => {
+        const pt = btn.getAttribute('data-pattern');
+        const bctx = btn.getContext('2d');
+        drawBackground(bctx, pt, btn.width, btn.height);
+      });
+    });
+  </script>
+</body>
+</html>
